@@ -7,6 +7,7 @@ import android.os.PersistableBundle;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 
+import dtm.core.dependencymanager.core.window.WindowEventListener;
 import dtm.core.dependencymanager.exceptions.InvalidContextActivity;
 import dtm.core.dependencymanager.exceptions.NoCurrentActivityException;
 import dtm.core.dependencymanager.exceptions.NoCurrentContextException;
@@ -17,7 +18,7 @@ import java.util.List;
 import dtm.core.dependencymanager.internal.WindowContextHolder;
 import lombok.NonNull;
 
-public abstract class ContextHolderActivity extends ContextActivity {
+public abstract class ContextHolderActivity extends ContextActivity implements WindowEventListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState, @LayoutRes Integer idLayout){

@@ -27,8 +27,8 @@ import androidx.viewbinding.ViewBinding;
 
 import dtm.core.dependencymanager.R;
 import dtm.core.dependencymanager.core.NotificationCreator;
+import dtm.core.dependencymanager.core.window.WindowEventListener;
 import dtm.core.dependencymanager.internal.WindowContextHolder;
-
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +36,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public abstract class ContextManagedFragment extends Fragment {
+public abstract class ContextManagedFragment extends Fragment implements WindowEventListener {
 
     protected ViewBinding viewBinding;
 
