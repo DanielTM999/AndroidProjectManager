@@ -27,8 +27,8 @@ public final class WindowContextHolder {
     public static void setCurrentActivityRef(ContextHolderActivity currentActivity){
         currentActivityRef = new WeakReference<>(currentActivity);
         currentContextRef = new WeakReference<>(currentActivity);
-        if(currentActivity instanceof WindowEventListenerClient){
-            windowEventListenerClientRefs.add(new WeakReference<>((WindowEventListenerClient)currentActivity));
+        if(currentActivity != null){
+            windowEventListenerClientRefs.add(new WeakReference<>(currentActivity));
         }
     }
     public static void setCurrentContextRef(Context currentContext){
