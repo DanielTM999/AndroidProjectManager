@@ -13,7 +13,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
 import android.view.View;
-
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,9 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
-
 import org.jetbrains.annotations.NotNull;
-
 import dtm.core.dependencymanager.R;
 import dtm.core.dependencymanager.core.NotificationCreator;
 import java.util.ArrayList;

@@ -12,13 +12,12 @@ import dtm.core.dependencymanager.exceptions.NoCurrentActivityException;
 import dtm.core.dependencymanager.exceptions.NoCurrentContextException;
 
 import java.lang.ref.WeakReference;
+import java.util.List;
 
+import dtm.core.dependencymanager.internal.WindowContextHolder;
 import lombok.NonNull;
 
 public abstract class ContextHolderActivity extends ContextActivity {
-
-    private static WeakReference<ContextHolderActivity> activityRef = new WeakReference<>(null);
-    private static WeakReference<Context> contextRef = new WeakReference<>(null);
 
     @Override
     protected void onCreate(Bundle savedInstanceState, @LayoutRes Integer idLayout){
@@ -26,28 +25,25 @@ public abstract class ContextHolderActivity extends ContextActivity {
         if(idLayout != null){
             setContentView(idLayout);
         }
-        activityRef = new WeakReference<>(this);
-        contextRef = new WeakReference<>(this);
+        WindowContextHolder.setCurrentActivityRef(this);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-        activityRef = new WeakReference<>(this);
-        contextRef = new WeakReference<>(this);
+        WindowContextHolder.setCurrentActivityRef(this);
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
         super.onCreate(savedInstanceState, persistentState);
-        activityRef = new WeakReference<>(this);
-        contextRef = new WeakReference<>(this);
+        WindowContextHolder.setCurrentActivityRef(this);
     }
 
 
     @SuppressWarnings("unchecked")
     public static <T extends ContextHolderActivity> T getCurrentActivity(){
-        ContextHolderActivity activity = activityRef.get();
+        ContextHolderActivity activity = WindowContextHolder.getCurrentActivity();
         if(activity == null){
             return null;
         }
@@ -60,7 +56,7 @@ public abstract class ContextHolderActivity extends ContextActivity {
 
     @SuppressWarnings("unchecked")
     public static <T extends ContextHolderActivity> T getCurrentActivityOrTrow(){
-        ContextHolderActivity activity = activityRef.get();
+        ContextHolderActivity activity = WindowContextHolder.getCurrentActivity();
         if (activity == null) {
             throw new NoCurrentActivityException("Sem próxima atividade");
         }
@@ -72,11 +68,11 @@ public abstract class ContextHolderActivity extends ContextActivity {
     }
 
     public static Context getCurrentContext(){
-        return contextRef.get();
+        return WindowContextHolder.getCurrentContext();
     }
 
     public static Context getCurrentContextOrThrow(){
-        Context context = contextRef.get();
+        Context context = WindowContextHolder.getCurrentContext();
         if(context == null){
             throw new NoCurrentContextException("Sem contexto");
         }
@@ -84,7 +80,7 @@ public abstract class ContextHolderActivity extends ContextActivity {
     }
 
     public static void setCurrentContext(@NonNull Context context){
-        contextRef = new WeakReference<>(context);
+        WindowContextHolder.setCurrentContextRef(context);
     }
 
 }

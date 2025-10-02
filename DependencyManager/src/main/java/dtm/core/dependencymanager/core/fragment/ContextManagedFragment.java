@@ -8,17 +8,27 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.viewbinding.ViewBinding;
+
 import dtm.core.dependencymanager.R;
 import dtm.core.dependencymanager.core.NotificationCreator;
+import dtm.core.dependencymanager.internal.WindowContextHolder;
+
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +37,44 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public abstract class ContextManagedFragment extends Fragment {
+
+    protected ViewBinding viewBinding;
+
+    protected int idLayout;
+
+    protected ContextManagedFragment(){
+    }
+
+    protected ContextManagedFragment(int idLayout){
+        this.idLayout = idLayout;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        saveState();
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = super.onCreateView(inflater, container, savedInstanceState);
+        saveState();
+        return view;
+    }
+
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState, int idLayout) {
+        View view = inflater.inflate(idLayout, container, false);
+        saveState();
+        return view;
+    }
+
+    public <T extends ViewBinding> View onCreateView(@NonNull Supplier<T> action){
+        viewBinding = action.get();
+        View view = viewBinding.getRoot();
+        saveState();
+        return view;
+    }
 
     protected long getAvailableMemory(){
         Context context = requireContext();
@@ -227,5 +275,9 @@ public abstract class ContextManagedFragment extends Fragment {
         long minRequired = (long) (maxHeap * minPercentFreeMemory);
         checkMemoryStatus("mb");
         return freeHeap >= minRequired;
+    }
+
+    private void saveState(){
+        WindowContextHolder.registerFragment(getActivity(), this);
     }
 }

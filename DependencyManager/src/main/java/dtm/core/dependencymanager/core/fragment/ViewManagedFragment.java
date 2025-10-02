@@ -24,9 +24,6 @@ import java.util.stream.Collectors;
 public abstract class ViewManagedFragment extends ContextManagedFragment {
 
     protected AppElementsMapper appElementsMapper;
-    protected ViewBinding viewBinding;
-    protected int idLayout;
-
     private boolean loadFragmentView = false;
 
     protected ViewManagedFragment(int idLayout){
@@ -99,6 +96,7 @@ public abstract class ViewManagedFragment extends ContextManagedFragment {
         return view;
     }
 
+    @Override
     public <T extends ViewBinding> View onCreateView(@NonNull Supplier<T> action){
         viewBinding = action.get();
         View view = viewBinding.getRoot();
