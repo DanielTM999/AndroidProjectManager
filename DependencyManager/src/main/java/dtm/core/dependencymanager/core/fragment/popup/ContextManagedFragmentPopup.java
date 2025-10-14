@@ -18,6 +18,7 @@ import androidx.fragment.app.FragmentActivity;
 import dtm.core.dependencymanager.R;
 import dtm.core.dependencymanager.core.NotificationCreator;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -56,15 +57,74 @@ public abstract class ContextManagedFragmentPopup extends DialogFragment {
         return handler;
     }
 
-    protected Future<Void> runAsync(Runnable runnable){
-        return CompletableFuture.runAsync(runnable);
+    protected CompletableFuture<Void> runAsync(Runnable runnable){
+        return runAsync(runnable, false);
     }
 
-    protected <T> Future<T> runAsync(Supplier<T> runnable){
-        return CompletableFuture.supplyAsync(runnable);
+    protected CompletableFuture<Void> runAsync(Runnable runnable, boolean callExceptionHandler){
+        return CompletableFuture.runAsync(runnable).whenComplete((result, throwable) -> {
+            if (throwable != null && callExceptionHandler) {
+                Thread current = Thread.currentThread();
+                Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                if (handler != null) {
+                    handler.uncaughtException(current, throwable);
+                }
+            }
+        });
     }
 
-    protected Future<Void> runDelayAsync(Runnable runnable, long delayInMillis){
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable) {
+        return runAsync(runnable, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.runAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runDelayAsync(Runnable runnable, long delayInMillis){
         return CompletableFuture.runAsync(() -> {
             try {
                 Thread.sleep(delayInMillis);

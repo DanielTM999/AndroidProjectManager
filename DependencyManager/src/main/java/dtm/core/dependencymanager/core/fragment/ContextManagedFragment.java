@@ -31,6 +31,8 @@ import dtm.core.dependencymanager.core.window.WindowEventListener;
 import dtm.core.dependencymanager.internal.WindowContextHolder;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
@@ -161,11 +163,70 @@ public abstract class ContextManagedFragment extends Fragment implements WindowE
     }
 
     protected CompletableFuture<Void> runAsync(Runnable runnable){
-        return CompletableFuture.runAsync(runnable);
+        return runAsync(runnable, false);
     }
 
-    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable){
-        return CompletableFuture.supplyAsync(runnable);
+    protected CompletableFuture<Void> runAsync(Runnable runnable, boolean callExceptionHandler){
+        return CompletableFuture.runAsync(runnable).whenComplete((result, throwable) -> {
+            if (throwable != null && callExceptionHandler) {
+                Thread current = Thread.currentThread();
+                Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                if (handler != null) {
+                    handler.uncaughtException(current, throwable);
+                }
+            }
+        });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable) {
+        return runAsync(runnable, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.runAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
     }
 
     protected CompletableFuture<Void> runDelayAsync(Runnable runnable, long delayInMillis){
@@ -179,7 +240,7 @@ public abstract class ContextManagedFragment extends Fragment implements WindowE
         });
     }
 
-    protected <T> CompletableFuture<T> runDelayAsync(Supplier<T> runnable, long delayInMillis){
+    protected <T> Future<T> runDelayAsync(Supplier<T> runnable, long delayInMillis){
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Thread.sleep(delayInMillis);

@@ -18,6 +18,7 @@ import dtm.core.dependencymanager.core.DependencyContainer;
 import dtm.core.dependencymanager.core.NotificationCreator;
 import dtm.core.dependencymanager.exceptions.InvalidClassRegistrationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -74,12 +75,94 @@ public abstract class ManagedService extends Service {
         return handler;
     }
 
-    protected Future<Void> runAsync(Runnable runnable){
-        return CompletableFuture.runAsync(runnable);
+    protected CompletableFuture<Void> runAsync(Runnable runnable){
+        return runAsync(runnable, false);
     }
 
-    protected <T> Future<T> runAsync(Supplier<T> runnable){
-        return CompletableFuture.supplyAsync(runnable);
+    protected CompletableFuture<Void> runAsync(Runnable runnable, boolean callExceptionHandler){
+        return CompletableFuture.runAsync(runnable).whenComplete((result, throwable) -> {
+            if (throwable != null && callExceptionHandler) {
+                Thread current = Thread.currentThread();
+                Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                if (handler != null) {
+                    handler.uncaughtException(current, throwable);
+                }
+            }
+        });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable) {
+        return runAsync(runnable, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.runAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runDelayAsync(Runnable runnable, long delayInMillis){
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(delayInMillis);
+                runnable.run();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
+    protected <T> Future<T> runDelayAsync(Supplier<T> runnable, long delayInMillis){
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(delayInMillis);
+                return runnable.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        });
     }
 
     protected void sendSimpleNotification(Consumer<NotificationCreator> creatorConsumer){
