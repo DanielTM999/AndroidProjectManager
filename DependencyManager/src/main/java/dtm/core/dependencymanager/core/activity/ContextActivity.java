@@ -27,6 +27,8 @@ import dtm.core.dependencymanager.R;
 import dtm.core.dependencymanager.core.NotificationAction;
 import dtm.core.dependencymanager.core.NotificationActionType;
 import dtm.core.dependencymanager.core.NotificationCreator;
+import dtm.core.dependencymanager.core.NotificationService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +38,12 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public abstract class ContextActivity extends AppCompatActivity {
+
+    private final NotificationService notificationService;
+    
+    public ContextActivity(){
+        this.notificationService = NotificationService.of(() -> this);
+    }
 
     protected void onCreate(Bundle savedInstanceState, @LayoutRes Integer idLayout) {
         super.onCreate(savedInstanceState);
@@ -341,86 +349,15 @@ public abstract class ContextActivity extends AppCompatActivity {
     }
 
     protected void sendSimpleNotification(Consumer<NotificationCreator> creatorConsumer){
-        NotificationCreator notificationCreator = new NotificationCreator();
-        creatorConsumer.accept(notificationCreator);
-
-        NotificationChannel channel = new NotificationChannel(
-                notificationCreator.getChannelId(),
-                notificationCreator.getChannelName(),
-                notificationCreator.getChanelImportance()
-        );
-
-        NotificationManager notificationManager = this.getSystemService(NotificationManager.class);
-        notificationManager.createNotificationChannel(channel);
-
-
-        NotificationCompat.Builder notificationBuilder  = new NotificationCompat.Builder(this, notificationCreator.getChannelId())
-                .setContentTitle(notificationCreator.getTitle())
-                .setContentText(notificationCreator.getContent())
-                .setSmallIcon(notificationCreator.getIconResId())
-                .setPriority(notificationCreator.isHighPriority() ? NotificationCompat.PRIORITY_HIGH : NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(notificationCreator.isAutoCancel());
-
-
-
-        boolean hasMainActivityIntent = false;
-
-        for (NotificationAction action : notificationCreator.getActions()) {
-            if (action.getType() == null || action.getIntent() == null) continue;
-            PendingIntent pendingIntent = null;
-            switch (action.getType()) {
-                case ACTIVITY -> {
-                    if (!hasMainActivityIntent) {
-                        hasMainActivityIntent = true;
-                        pendingIntent = PendingIntent.getActivity(
-                                this, 0, action.getIntent(),
-                                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                        );
-                        notificationBuilder.setContentIntent(pendingIntent);
-                    } else {
-                        Log.w("NotificationHelper", "Apenas uma Activity pode ser associada à notificação principal.");
-                    }
-                }
-                case BROADCAST -> {
-                    pendingIntent = PendingIntent.getBroadcast(
-                            this, 0, action.getIntent(),
-                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                    );
-                }
-                case SERVICE -> {
-                    pendingIntent = PendingIntent.getService(
-                            this, 0, action.getIntent(),
-                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                    );
-                }
-                case NONE -> {}
-            }
-
-            if (pendingIntent != null && action.getType() != NotificationActionType.ACTIVITY) {
-                notificationBuilder.addAction(action.getIconResId(), action.getLabel(), pendingIntent);
-            }
-        }
-
-
-        notificationManager.notify(notificationCreator.getNotificationId(), notificationBuilder.build());
-
+        notificationService.sendSimpleNotification(creatorConsumer);
     }
 
     protected void sendSimpleNotification(String title, String content) {
-        sendSimpleNotification((nc) -> {
-            nc.setTitle(title);
-            nc.setContent(content);
-            nc.setIconResId(R.drawable.new_message);
-        });
+        notificationService.sendSimpleNotification(title, content);
     }
 
     protected void sendSimpleNotification(String title, String content, boolean highPriority) {
-        sendSimpleNotification((nc) -> {
-            nc.setTitle(title);
-            nc.setContent(content);
-            nc.setHighPriority(highPriority);
-            nc.setIconResId(R.drawable.new_message);
-        });
+        notificationService.sendSimpleNotification(title, content, highPriority);
     }
 
 
