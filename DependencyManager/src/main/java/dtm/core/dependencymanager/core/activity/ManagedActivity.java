@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 
 import dtm.core.dependencymanager.containers.DependencyContainerStorage;
 import dtm.core.dependencymanager.core.DependencyContainer;
+import dtm.core.dependencymanager.core.InjectionStrategy;
 import dtm.core.dependencymanager.exceptions.InvalidClassRegistrationException;
 import dtm.core.dependencymanager.exceptions.NewInstanceException;
 import dtm.core.dependencymanager.core.prototypes.Dependency;
@@ -138,11 +139,8 @@ public abstract class ManagedActivity extends ViewManagedActivity {
         dependencyContainer.disableChildrenRegistration();
     }
 
-    protected void enableParallelInjection(){
-        dependencyContainer.enableParallelInjection();
-    }
-    protected void disableParallelInjection(){
-        dependencyContainer.disableParallelInjection();
+    protected void setInjectionStrategy(InjectionStrategy injectionStrategy){
+        dependencyContainer.setInjectionStrategy(injectionStrategy);
     }
 
     protected void preInjection(){}

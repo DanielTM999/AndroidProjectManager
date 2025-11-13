@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
 import dtm.core.dependencymanager.containers.DependencyContainerStorage;
 import dtm.core.dependencymanager.core.DependencyContainer;
+import dtm.core.dependencymanager.core.InjectionStrategy;
 import dtm.core.dependencymanager.exceptions.NewInstanceException;
 import java.util.function.Supplier;
 
@@ -38,13 +39,9 @@ public abstract class ManagedFragmentPopup extends ViewManagedFragmentPopup{
     protected void disableChildrenRegistration(){
         dependencyContainer.disableChildrenRegistration();
     }
-    protected void enableParallelInjection(){
-        dependencyContainer.enableParallelInjection();
+    protected void setInjectionStrategy(InjectionStrategy injectionStrategy){
+        dependencyContainer.setInjectionStrategy(injectionStrategy);
     }
-    protected void disableParallelInjection(){
-        dependencyContainer.disableParallelInjection();
-    }
-
     protected <T> T newInstance(Class<T> reference) throws NewInstanceException {
         return dependencyContainer.newInstance(reference);
     }

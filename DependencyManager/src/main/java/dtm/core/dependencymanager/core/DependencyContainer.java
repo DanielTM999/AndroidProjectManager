@@ -24,8 +24,7 @@ public interface DependencyContainer {
     void enableChildrenRegistration();
     void disableChildrenRegistration();
     List<Dependency> getRegisteredDependencies();
-    void enableParallelInjection();
-    void disableParallelInjection();
+    void setInjectionStrategy(InjectionStrategy injectionStrategy);
     void enableLog();
     void disableLog();
 

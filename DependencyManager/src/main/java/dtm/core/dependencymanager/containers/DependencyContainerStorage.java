@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
 
+import dtm.core.dependencymanager.core.InjectionStrategy;
 import dtm.core.dependencymanager.internal.DependencyObject;
 import dtm.core.dependencymanager.internal.Lazy;
 import dtm.core.dependencymanager.internal.LazyObject;
@@ -37,6 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -45,13 +47,14 @@ public final class DependencyContainerStorage implements DependencyContainer {
     private final Set<Class<?>> loadedClasses;
     private final List<ServiceBeen> serviceBeensDefinition;
     private final AtomicBoolean loaded;
+    private final AtomicReference<InjectionStrategy> injectionStrategy;
     private boolean childrenRegistration;
-    private boolean parallelInjection;
     private boolean log;
 
     private DependencyContainerStorage(){
         this.loaded = new AtomicBoolean(false);
         this.childrenRegistration = false;
+        this.injectionStrategy = new AtomicReference<>(InjectionStrategy.ADAPTIVE);
         this.dependencyContainer = new ConcurrentHashMap<>();
         this.loadedClasses = ConcurrentHashMap.newKeySet();
         this.serviceBeensDefinition = Collections.synchronizedList(new ArrayList<>());
@@ -84,39 +87,10 @@ public final class DependencyContainerStorage implements DependencyContainer {
         final Class<?> clazz = instance.getClass();
         List<Field> listOfRegistration = getInjectableFields(clazz);
 
-        if(parallelInjection){
-            final List<CompletableFuture<?>> tasks = new ArrayList<>();
-            final ExecutorService executorService = (listOfRegistration.size() > 10) ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-            try{
-                for (Field variable : listOfRegistration) {
-
-                    tasks.add(CompletableFuture.runAsync(() -> {
-                        if (log) {
-                            Log.d("DependencyInjection", "Injetando variável: " + variable.getName());
-                        }
-                        injectVariable(variable, instance);
-
-                        if (log) {
-                            Log.d("DependencyInjection", "Variável injetada com sucesso: " + variable.getName());
-                        }
-                    }, executorService));
-                }
-            }finally {
-                executorService.shutdown();
-            }
-
-            try {
-                CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).get();
-            } catch (InterruptedException | ExecutionException e) {
-                if(log) Log.e("DependencyInjection", "Erro ao injetar dependências em paralelo", e);
-            }
-
-
-
+        if(isParallelInjection(listOfRegistration.size())){
+            injectDependenciesParallel(instance, listOfRegistration);
         }else{
-            for (Field variable : listOfRegistration) {
-                injectVariable(variable, instance);
-            }
+            injectSequential(instance, listOfRegistration);
         }
     }
 
@@ -194,15 +168,6 @@ public final class DependencyContainerStorage implements DependencyContainer {
         this.childrenRegistration = false;
     }
 
-    @Override
-    public void enableParallelInjection() {
-        this.parallelInjection = true;
-    }
-
-    @Override
-    public void disableParallelInjection() {
-        this.parallelInjection = false;
-    }
 
     @Override
     public void enableLog() {
@@ -220,6 +185,11 @@ public final class DependencyContainerStorage implements DependencyContainer {
                 .stream()
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void setInjectionStrategy(InjectionStrategy injectionStrategy) {
+        this.injectionStrategy.set((injectionStrategy != null) ? injectionStrategy : InjectionStrategy.ADAPTIVE);
     }
 
     private void registerSubTypes(@NonNull Class<?> clazz, @NonNull List<Dependency> listOfDependency){
@@ -716,6 +686,46 @@ public final class DependencyContainerStorage implements DependencyContainer {
             current = current.getSuperclass();
         }
         return listOfRegistration;
+    }
+
+    private void injectDependenciesParallel(Object instance, List<Field> listOfRegistration){
+        final List<CompletableFuture<?>> tasks = new ArrayList<>();
+        final ExecutorService executorService = (listOfRegistration.size() > 10) ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        try{
+            for (Field variable : listOfRegistration) {
+
+                tasks.add(CompletableFuture.runAsync(() -> {
+                    if (log) {
+                        Log.d("DependencyInjection", "Injetando variável: " + variable.getName());
+                    }
+                    injectVariable(variable, instance);
+
+                    if (log) {
+                        Log.d("DependencyInjection", "Variável injetada com sucesso: " + variable.getName());
+                    }
+                }, executorService));
+            }
+        }finally {
+            executorService.shutdown();
+        }
+
+        try {
+            CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).get();
+        } catch (InterruptedException | ExecutionException e) {
+            if(log) Log.e("DependencyInjection", "Erro ao injetar dependências em paralelo", e);
+        }
+    }
+
+    private void injectSequential(Object instance, List<Field> listOfRegistration){
+        for (Field variable : listOfRegistration) {
+            injectVariable(variable, instance);
+        }
+    }
+
+    private boolean isParallelInjection(int injectionSize){
+        return (injectionStrategy.get() == InjectionStrategy.ADAPTIVE)
+                ? injectionSize > 10
+                : InjectionStrategy.PARALLEL == injectionStrategy.get();
     }
 
 }
