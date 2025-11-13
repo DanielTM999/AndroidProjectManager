@@ -1,8 +1,13 @@
 package dtm.core.dependencymanager.core;
 
 import android.app.NotificationManager;
+import android.content.Intent;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.Data;
 
@@ -19,7 +24,7 @@ public class NotificationCreator {
     private String channelId;
     private String channelName;
     private int chanelImportance;
-    private Class<? extends AppCompatActivity> referenceActivicy;
+    private List<NotificationAction> actions;
 
     public NotificationCreator(){
         this.title = "Notificação";
@@ -33,6 +38,10 @@ public class NotificationCreator {
         this.channelId = "default_channel";
         this.channelName = "Default Notification Channel";
         this.chanelImportance = NotificationManager.IMPORTANCE_DEFAULT;
-        this.referenceActivicy = null;
+        this.actions = new ArrayList<>();
+    }
+
+    public void addIntentAction(@NonNull NotificationAction action){
+        this.actions.add(action);
     }
 }

@@ -5,6 +5,7 @@ import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,6 +13,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
+import android.util.Log;
 import android.view.View;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
@@ -22,6 +24,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import org.jetbrains.annotations.NotNull;
 import dtm.core.dependencymanager.R;
+import dtm.core.dependencymanager.core.NotificationAction;
+import dtm.core.dependencymanager.core.NotificationActionType;
 import dtm.core.dependencymanager.core.NotificationCreator;
 import java.util.ArrayList;
 import java.util.List;
@@ -346,17 +350,60 @@ public abstract class ContextActivity extends AppCompatActivity {
                 notificationCreator.getChanelImportance()
         );
 
-        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        NotificationManager notificationManager = this.getSystemService(NotificationManager.class);
         notificationManager.createNotificationChannel(channel);
 
-        Notification notification = new NotificationCompat.Builder(this, notificationCreator.getChannelId())
+
+        NotificationCompat.Builder notificationBuilder  = new NotificationCompat.Builder(this, notificationCreator.getChannelId())
                 .setContentTitle(notificationCreator.getTitle())
                 .setContentText(notificationCreator.getContent())
                 .setSmallIcon(notificationCreator.getIconResId())
                 .setPriority(notificationCreator.isHighPriority() ? NotificationCompat.PRIORITY_HIGH : NotificationCompat.PRIORITY_DEFAULT)
-                .build();
+                .setAutoCancel(notificationCreator.isAutoCancel());
 
-        notificationManager.notify(notificationCreator.getNotificationId(), notification);
+
+
+        boolean hasMainActivityIntent = false;
+
+        for (NotificationAction action : notificationCreator.getActions()) {
+            if (action.getType() == null || action.getIntent() == null) continue;
+            PendingIntent pendingIntent = null;
+            switch (action.getType()) {
+                case ACTIVITY -> {
+                    if (!hasMainActivityIntent) {
+                        hasMainActivityIntent = true;
+                        pendingIntent = PendingIntent.getActivity(
+                                this, 0, action.getIntent(),
+                                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                        );
+                        notificationBuilder.setContentIntent(pendingIntent);
+                    } else {
+                        Log.w("NotificationHelper", "Apenas uma Activity pode ser associada à notificação principal.");
+                    }
+                }
+                case BROADCAST -> {
+                    pendingIntent = PendingIntent.getBroadcast(
+                            this, 0, action.getIntent(),
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    );
+                }
+                case SERVICE -> {
+                    pendingIntent = PendingIntent.getService(
+                            this, 0, action.getIntent(),
+                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    );
+                }
+                case NONE -> {}
+            }
+
+            if (pendingIntent != null && action.getType() != NotificationActionType.ACTIVITY) {
+                notificationBuilder.addAction(action.getIconResId(), action.getLabel(), pendingIntent);
+            }
+        }
+
+
+        notificationManager.notify(notificationCreator.getNotificationId(), notificationBuilder.build());
+
     }
 
     protected void sendSimpleNotification(String title, String content) {
