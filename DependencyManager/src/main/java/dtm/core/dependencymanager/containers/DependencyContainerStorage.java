@@ -43,13 +43,17 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class DependencyContainerStorage implements DependencyContainer {
+    private static final String TAG = "DependencyContainer";
+    private final ExecutorService mainExecutor;
     private final Map<Class<?>, List<Dependency>> dependencyContainer;
     private final Set<Class<?>> loadedClasses;
     private final List<ServiceBeen> serviceBeensDefinition;
+    private final List<Set<ServiceBeen>> serviceBeensDefinitionLayer;
     private final AtomicBoolean loaded;
     private final AtomicReference<InjectionStrategy> injectionStrategy;
     private boolean childrenRegistration;
     private boolean log;
+    private final boolean processInlayer = true;
 
     private DependencyContainerStorage(){
         this.loaded = new AtomicBoolean(false);
@@ -58,6 +62,8 @@ public final class DependencyContainerStorage implements DependencyContainer {
         this.dependencyContainer = new ConcurrentHashMap<>();
         this.loadedClasses = ConcurrentHashMap.newKeySet();
         this.serviceBeensDefinition = Collections.synchronizedList(new ArrayList<>());
+        this.serviceBeensDefinitionLayer = Collections.synchronizedList(new ArrayList<>());
+        this.mainExecutor = Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()));
     }
 
     public static DependencyContainerStorage getInstance(){
@@ -77,21 +83,13 @@ public final class DependencyContainerStorage implements DependencyContainer {
     public void load() throws InvalidClassRegistrationException{
         if(isLoaded()) return;
         filterServiceClass();
-        loaded.set(true);
         loadBeens();
+        loaded.set(true);
     }
 
     @Override
     public void injectDependencies(Object instance) {
-        throwIfUnload();
-        final Class<?> clazz = instance.getClass();
-        List<Field> listOfRegistration = getInjectableFields(clazz);
-
-        if(isParallelInjection(listOfRegistration.size())){
-            injectDependenciesParallel(instance, listOfRegistration);
-        }else{
-            injectSequential(instance, listOfRegistration);
-        }
+        injectDependenciesInternal(instance, true);
     }
 
     @Override
@@ -101,15 +99,7 @@ public final class DependencyContainerStorage implements DependencyContainer {
 
     @Override
     public <T> T getDependency(Class<T> reference, String referenceName) {
-        throwIfUnload();
-        try{
-            final List<Dependency> listOfDependency = dependencyContainer.getOrDefault(reference, Collections.emptyList());
-            final Dependency dependencyObject = Objects.requireNonNull(listOfDependency).stream().filter(d -> d.getQualifier().equals(referenceName)).findFirst().orElseThrow();
-            Object instance = dependencyObject.getDependency();
-            return reference.cast(instance);
-        }catch (Exception e){
-            return null;
-        }
+        return getDependencyInternal(reference, referenceName, true);
     }
 
     @SuppressWarnings("unchecked")
@@ -242,7 +232,7 @@ public final class DependencyContainerStorage implements DependencyContainer {
                 }
             }
             instance = (instance == null) ? createWithConstructor(clazz, constructors) : instance;
-            injectDependencies(Objects.requireNonNull(instance));
+            injectDependenciesInternal(Objects.requireNonNull(instance), false);
             return instance;
         } catch (Exception e) {
             String message = "Erro ao criar Objeto "+clazz+" ==> cause: "+e.getMessage();
@@ -378,18 +368,46 @@ public final class DependencyContainerStorage implements DependencyContainer {
         final int total = loadedClasses.size();
         final Map<Class<?>, Set<Class<?>>> dependencyGraph = new ConcurrentHashMap<>();
 
+        Log.i(TAG, "Iniciando análise de dependências. Total de classes encontradas: " + total);
+
         if (total < threshold) {
             processDependencyWithParallelStream(dependencyGraph);
         } else {
             processDependencyWithExecutorService(dependencyGraph);
         }
-        
-        List<Class<?>> ordered = topologicalSort(loadedClasses, dependencyGraph);
 
-        int order = 0;
-        for (Class<?> clazz : ordered) {
-            serviceBeensDefinition.add(new ServiceBeen(clazz, order++));
+        if(processInlayer){
+            List<Set<Class<?>>> classLayers = groupByDependencyLayer(loadedClasses, dependencyGraph);
+            Log.i(TAG, "Estratégia Layer: " + classLayers.size() + " camadas de dependência geradas.");
+            int order = 0;
+            for (Set<Class<?>> classSet : classLayers) {
+                int layerOrder = order;
+                Set<ServiceBeen> layer = ConcurrentHashMap.newKeySet();
+                String classesInLayer = classSet.stream()
+                        .map(Class::getSimpleName)
+                        .collect(Collectors.joining(", "));
+                Log.d(TAG, "Camada [" + layerOrder + "]: Contém " + classSet.size() + " classes -> [" + classesInLayer + "]");
+
+                classSet.parallelStream().forEach(clazz -> {
+                    layer.add(new ServiceBeen(clazz, layerOrder));
+                });
+
+                serviceBeensDefinitionLayer.add(layer);
+                order++;
+            }
+        }else{
+            Set<Class<?>> ordered = topologicalSort(loadedClasses, dependencyGraph);
+
+            String topologicalList = ordered.stream()
+                    .map(Class::getSimpleName)
+                    .collect(Collectors.joining(" -> "));
+            Log.i(TAG, "Estratégia Topológica: " + ordered.size() + " classes. Ordem: [" + topologicalList + "]");
+            int order = 0;
+            for (Class<?> clazz : ordered) {
+                serviceBeensDefinition.add(new ServiceBeen(clazz, order++));
+            }
         }
+
     }
 
     private void registerDependencyInternal(@NonNull Object dependency) throws InvalidClassRegistrationException{
@@ -490,8 +508,52 @@ public final class DependencyContainerStorage implements DependencyContainer {
     }
 
     private void loadBeens() throws InvalidClassRegistrationException{
+        if(processInlayer){
+            loadBeensInlayer();
+        }else{
+            loadBeensTopological();
+        }
+    }
+
+    private void loadBeensTopological() throws InvalidClassRegistrationException{
         for (ServiceBeen service: new ArrayList<>(serviceBeensDefinition)){
             registerDependencyInternal(service.getClazz(), new HashSet<>());
+        }
+    }
+
+    private void loadBeensInlayer() throws InvalidClassRegistrationException{
+        for (Set<ServiceBeen> layer : serviceBeensDefinitionLayer) {
+            loadBeensInlayer(layer);
+        }
+    }
+
+    private void loadBeensInlayer(Set<ServiceBeen> layer) throws InvalidClassRegistrationException{
+        List<CompletableFuture<?>> tasks = new ArrayList<>();
+        for (ServiceBeen serviceBean : layer) {
+            CompletableFuture<?> task = CompletableFuture.runAsync(() -> {
+                try {
+                    registerDependencyInternal(serviceBean.getClazz(), new HashSet<>());
+                } catch (InvalidClassRegistrationException e) {
+                    throw new RuntimeException(e);
+                }
+            }, mainExecutor);
+            tasks.add(task);
+        }
+
+        try {
+            CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).get();
+        }catch (Exception e){
+            if(e instanceof RuntimeException runtimeException){
+                Throwable cause = runtimeException.getCause();
+                if (cause instanceof InvalidClassRegistrationException invalidClassRegistrationException) {
+                    throw invalidClassRegistrationException;
+                }
+
+                throw new DependencyInjectionException((cause != null) ? cause : runtimeException);
+            }
+
+            throw new DependencyInjectionException(e);
+
         }
     }
 
@@ -576,8 +638,8 @@ public final class DependencyContainerStorage implements DependencyContainer {
         }
     }
 
-    private List<Class<?>> topologicalSort(Set<Class<?>> classes, Map<Class<?>, Set<Class<?>>> graph) {
-        List<Class<?>> ordered = new ArrayList<>();
+    private Set<Class<?>> topologicalSort(Set<Class<?>> classes, Map<Class<?>, Set<Class<?>>> graph) {
+        Set<Class<?>> ordered = new HashSet<>();
         Set<Class<?>> visited = new HashSet<>();
         Set<Class<?>> visiting = new HashSet<>();
 
@@ -592,18 +654,16 @@ public final class DependencyContainerStorage implements DependencyContainer {
 
     private void visit(
             Class<?> clazz,
-            Map<Class<?>, Set<Class<?>>> graph,
+            @NonNull Map<Class<?>, Set<Class<?>>> graph,
             Set<Class<?>> visited,
             Set<Class<?>> visiting,
-            List<Class<?>> ordered
+            Set<Class<?>> ordered
     ){
         if (visiting.contains(clazz)) {
             throw new IllegalStateException("Ciclo de dependência detectado em: " + clazz.getName());
         }
 
-        if (visited.contains(clazz)) {
-            return;
-        }
+        if (visited.contains(clazz)) return;
 
         visiting.add(clazz);
 
@@ -665,9 +725,9 @@ public final class DependencyContainerStorage implements DependencyContainer {
             return Lazy.of(actionInject);
         }else{
             if(!isLazy){
-                return getDependency(clazzVariable);
+                return getDependencyInternal(clazzVariable, false);
             }else{
-                return Lazy.of(() -> getDependency(clazzVariable));
+                return Lazy.of(() -> getDependencyInternal(clazzVariable, false));
             }
         }
     }
@@ -690,23 +750,18 @@ public final class DependencyContainerStorage implements DependencyContainer {
 
     private void injectDependenciesParallel(Object instance, List<Field> listOfRegistration){
         final List<CompletableFuture<?>> tasks = new ArrayList<>();
-        final ExecutorService executorService = (listOfRegistration.size() > 10) ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        try{
-            for (Field variable : listOfRegistration) {
+        for (Field variable : listOfRegistration) {
 
-                tasks.add(CompletableFuture.runAsync(() -> {
-                    if (log) {
-                        Log.d("DependencyInjection", "Injetando variável: " + variable.getName());
-                    }
-                    injectVariable(variable, instance);
+            tasks.add(CompletableFuture.runAsync(() -> {
+                if (log) {
+                    Log.d("DependencyInjection", "Injetando variável: " + variable.getName());
+                }
+                injectVariable(variable, instance);
 
-                    if (log) {
-                        Log.d("DependencyInjection", "Variável injetada com sucesso: " + variable.getName());
-                    }
-                }, executorService));
-            }
-        }finally {
-            executorService.shutdown();
+                if (log) {
+                    Log.d("DependencyInjection", "Variável injetada com sucesso: " + variable.getName());
+                }
+            }, mainExecutor));
         }
 
         try {
@@ -728,4 +783,62 @@ public final class DependencyContainerStorage implements DependencyContainer {
                 : InjectionStrategy.PARALLEL == injectionStrategy.get();
     }
 
+    private List<Set<Class<?>>> groupByDependencyLayer(
+            Set<Class<?>> serviceLoadedClass,
+            Map<Class<?>, Set<Class<?>>> dependencyGraph) {
+
+        List<Set<Class<?>>> layers = new ArrayList<>();
+        Set<Class<?>> processed = new HashSet<>();
+
+
+        Set<Class<?>> currentLayer = serviceLoadedClass.stream()
+                .filter(c -> dependencyGraph.getOrDefault(c, Set.of()).isEmpty())
+                .collect(Collectors.toSet());
+
+        while (!currentLayer.isEmpty()) {
+            layers.add(currentLayer);
+            processed.addAll(currentLayer);
+
+            currentLayer = serviceLoadedClass.stream()
+                    .filter(c -> !processed.contains(c))
+                    .filter(c -> {
+                        Set<Class<?>> deps = dependencyGraph.getOrDefault(c, Set.of());
+                        return processed.containsAll(deps);
+                    })
+                    .collect(Collectors.toSet());
+        }
+
+        return layers;
+
+    }
+
+    private <T> T getDependencyInternal(Class<T> reference, boolean throwUnload) {
+
+        return getDependencyInternal(reference, getQualifierName(reference), throwUnload);
+    }
+
+    private <T> T getDependencyInternal(Class<T> reference, String referenceName, boolean throwUnload) {
+        if(throwUnload) throwIfUnload();
+        try{
+            final List<Dependency> listOfDependency = dependencyContainer.getOrDefault(reference, Collections.emptyList());
+            final Dependency dependencyObject = Objects.requireNonNull(listOfDependency).stream().filter(d -> d.getQualifier().equals(referenceName)).findFirst().orElseThrow();
+            Object instance = dependencyObject.getDependency();
+            return reference.cast(instance);
+        }catch (Exception e){
+            return null;
+        }
+    }
+    
+    private void injectDependenciesInternal(Object instance, boolean throwUnload) {
+        if(throwUnload) throwIfUnload();
+        final Class<?> clazz = instance.getClass();
+        List<Field> listOfRegistration = getInjectableFields(clazz);
+
+        if(isParallelInjection(listOfRegistration.size())){
+            injectDependenciesParallel(instance, listOfRegistration);
+        }else{
+            injectSequential(instance, listOfRegistration);
+        }
+    } 
+    
 }

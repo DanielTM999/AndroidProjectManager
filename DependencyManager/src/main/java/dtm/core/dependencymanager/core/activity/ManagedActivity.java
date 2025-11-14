@@ -23,7 +23,6 @@ import java.util.concurrent.locks.LockSupport;
 public abstract class ManagedActivity extends ViewManagedActivity {
     private final DependencyContainer dependencyContainer;
     private boolean parallelStart;
-    private boolean loadActivityDependencies = false;
     private final AtomicBoolean isReady;
 
     protected ManagedActivity() {
@@ -42,7 +41,6 @@ public abstract class ManagedActivity extends ViewManagedActivity {
         preInit();
         super.onCreate(savedInstanceState, persistentState);
         startInjection();
-        loadActivityDependencies = true;
     }
 
     @Override
@@ -50,7 +48,6 @@ public abstract class ManagedActivity extends ViewManagedActivity {
         preInit();
         super.onCreate(savedInstanceState);
         startInjection();
-        loadActivityDependencies = true;
     }
 
     @Override
@@ -61,7 +58,6 @@ public abstract class ManagedActivity extends ViewManagedActivity {
             setContentView(idLayout);
         }
         startInjection();
-        loadActivityDependencies = true;
     }
 
     @Override
@@ -75,7 +71,7 @@ public abstract class ManagedActivity extends ViewManagedActivity {
 
     @Override
     public boolean isActivityLoad() {
-        return super.isActivityLoad() && loadActivityDependencies;
+        return super.isActivityLoad() && isReady.get();
     }
 
     protected void enableParallelStart(){
@@ -166,7 +162,7 @@ public abstract class ManagedActivity extends ViewManagedActivity {
 
     private void onLoadCallback(){
        runAsync(() -> {
-           while (!isReady()){
+           while (!isReady() && !isActivityLoad()){
                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
            }
            runOnUiThread(this::onLoad);
