@@ -11,11 +11,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
 
+import dtm.core.dependencymanager.annotations.EnableInheritedViewInjection;
 import dtm.core.dependencymanager.internal.AppElementsMapperStorage;
 import dtm.core.dependencymanager.annotations.ViewElement;
 import dtm.core.dependencymanager.core.AppElementsMapper;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
@@ -40,7 +42,7 @@ public abstract class ViewManagedFragment extends ContextManagedFragment {
     protected void injectIdView(View root){
         try{
             this.appElementsMapper = AppElementsMapperStorage.getInstance();
-            List<Field> viewFields = Arrays.stream(getClass().getDeclaredFields()).filter(f -> f.isAnnotationPresent(ViewElement.class)).collect(Collectors.toList());
+            List<Field> viewFields = getInjectableViewsFields();
 
             for (Field variable : viewFields) {
                 int id = getId(variable);
@@ -125,6 +127,25 @@ public abstract class ViewManagedFragment extends ContextManagedFragment {
                 }
             }, 100);
         }
+    }
+
+    private List<Field> getInjectableViewsFields(){
+        Class<?> type = getClass();
+        List<Field> viewFields = new ArrayList<>();
+        EnableInheritedViewInjection cfg = type.getAnnotation(EnableInheritedViewInjection.class);
+        int levels = cfg != null ? Math.max(cfg.levels(), 0) : 0;
+        int currentLevel = 0;
+        while (type != null && type != Object.class && currentLevel <= levels) {
+            for (Field f : type.getDeclaredFields()) {
+                if (f.isAnnotationPresent(ViewElement.class)) {
+                    viewFields.add(f);
+                }
+            }
+            type = type.getSuperclass();
+            currentLevel++;
+        }
+
+        return viewFields;
     }
 
 }
