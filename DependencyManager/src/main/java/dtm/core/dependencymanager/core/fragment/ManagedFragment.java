@@ -63,9 +63,21 @@ public abstract class ManagedFragment extends ViewManagedFragment {
         return dependencyContainer.newInstance(reference);
     }
 
+    protected <T> T newInstance(Class<T> reference, Object... args) throws NewInstanceException {
+        return dependencyContainer.newInstance(reference, args);
+    }
+
     protected <T> T newInstanceOr(Class<T> reference, T defaultValue){
         try {
             return dependencyContainer.newInstance(reference);
+        } catch (NewInstanceException e) {
+            return defaultValue;
+        }
+    }
+
+    protected <T> T newInstanceOr(Class<T> reference, T defaultValue, Object... args){
+        try {
+            return dependencyContainer.newInstance(reference, args);
         } catch (NewInstanceException e) {
             return defaultValue;
         }

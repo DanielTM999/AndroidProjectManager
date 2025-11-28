@@ -3,7 +3,7 @@ package dtm.core.dependencymanager.exceptions;
 import lombok.Getter;
 
 @Getter
-public class NewInstanceException extends Exception{
+public class NewInstanceException extends DependencyContainerException{
     private final Class<?> referenceClass;
 
     public NewInstanceException(String message, Class<?> referenceClass, Throwable th){

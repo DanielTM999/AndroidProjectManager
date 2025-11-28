@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -110,6 +111,21 @@ public final class DependencyContainerStorage implements DependencyContainer {
             return (T)createObject(referenceClass);
         }catch (Exception e){
             throw new NewInstanceException(e.getMessage(), referenceClass, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T newInstance(Class<T> referenceClass, Object... args) throws NewInstanceException {
+        throwIfUnload();
+        try{
+            return (T)createObject(referenceClass, args, true);
+        } catch (RuntimeException e){
+            Throwable th = (e.getCause() != null) ? e.getCause() : e;
+            if(th instanceof NewInstanceException newInstanceException){
+                throw newInstanceException;
+            }
+            throw new NewInstanceException(th.getMessage(), referenceClass, e);
         }
     }
 
@@ -222,23 +238,83 @@ public final class DependencyContainerStorage implements DependencyContainer {
     }
 
     private Object createObject(@NonNull Class<?> clazz){
+        return createObject(clazz, new Object[0], false);
+    }
+
+    private Object createObject(@NonNull Class<?> clazz, Object[] extraConstructorArgs, boolean throwError){
         try {
-            Object instance = null;
             Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+            List<Parameter> failedParams = new ArrayList<>();
             for (Constructor<?> constructor : constructors) {
-                if (constructor.getParameterCount() == 0) {
-                    instance = createWithOutConstructor(clazz);
-                    break;
+                Parameter[] parameterTypes = constructor.getParameters();
+                Object[] resolvedArgs = tryResolveConstructorArgs(parameterTypes, extraConstructorArgs, failedParams);
+
+                if (resolvedArgs != null) {
+                    constructor.setAccessible(true);
+                    Object instance = constructor.newInstance(resolvedArgs);
+                    injectDependenciesInternal(Objects.requireNonNull(instance), false);
+                    return instance;
                 }
             }
-            instance = (instance == null) ? createWithConstructor(clazz, constructors) : instance;
-            injectDependenciesInternal(Objects.requireNonNull(instance), false);
-            return instance;
+            String message;
+            if (!failedParams.isEmpty()) {
+                StringBuilder errorMsg = new StringBuilder("Falha ao instanciar " + clazz.getName() + ". Parâmetros não resolvidos:\n");
+                for (Parameter p : failedParams) {
+                    errorMsg.append("- ").append(p.getName()).append(" : ").append(p.getType().getName()).append("\n");
+                }
+                message = errorMsg.toString();
+            }else{
+                message = "Sem construtor aplicável encontrado para " + clazz.getName();
+            }
+            throw new NewInstanceException(message, clazz);
         } catch (Exception e) {
             String message = "Erro ao criar Objeto "+clazz+" ==> cause: "+e.getMessage();
             if(log) Log.e("createObjectDependency", message, e);
+            if(throwError) {
+                throw new RuntimeException(e);
+            }
             return null;
         }
+    }
+
+    private Object[] tryResolveConstructorArgs(Parameter[] parameters, Object[] extraArgs, List<Parameter> failedParams) {
+        Object[] args = new Object[parameters.length];
+
+        List<Object> extras = new ArrayList<>();
+        if (extraArgs != null) {
+            Collections.addAll(extras, extraArgs);
+        }
+
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            Class<?> paramType = parameter.getType();
+
+            Object matchedExtra = null;
+            Iterator<Object> iterator = extras.iterator();
+            while (iterator.hasNext()) {
+                Object candidate = iterator.next();
+                if (candidate != null && paramType.isAssignableFrom(candidate.getClass())) {
+                    matchedExtra = candidate;
+                    iterator.remove();
+                    break;
+                }
+            }
+
+            if (matchedExtra != null) {
+                args[i] = matchedExtra;
+            } else {
+                Object injected = getDependecyObjectByParam(parameter);
+                if (injected == null) {
+                    if (failedParams != null) {
+                        failedParams.add(parameter);
+                    }
+                    return null;
+                }
+                args[i] = injected;
+            }
+        }
+
+        return args;
     }
 
     private Supplier<Object> createActivationFunction(@NonNull Class<?> clazz){
