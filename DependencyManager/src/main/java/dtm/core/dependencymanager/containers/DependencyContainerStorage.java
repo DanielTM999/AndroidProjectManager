@@ -131,7 +131,12 @@ public final class DependencyContainerStorage implements DependencyContainer {
 
     @Override
     public void registerDependency(@NonNull Object dependency, @NonNull String qualifier) throws InvalidClassRegistrationException {
-        registerDependencyInternal(dependency, qualifier);
+        registerDependencyInternal(dependency, qualifier, false);
+    }
+
+    @Override
+    public void registerDependency(Object dependency, String qualifier, boolean replace) throws InvalidClassRegistrationException {
+        registerDependencyInternal(dependency, qualifier, replace);
     }
 
     @Override
@@ -140,9 +145,33 @@ public final class DependencyContainerStorage implements DependencyContainer {
     }
 
     @Override
+    public void registerDependency(Object dependency, boolean replace) throws InvalidClassRegistrationException {
+        registerDependencyInternal(dependency, replace);
+    }
+
+    @Override
     public void registerDependency(@NonNull Class<?> dependency) throws InvalidClassRegistrationException {
         if(!isLoaded()){
             loadedClasses.add(dependency);
+        }else{
+            try{
+                registerDependency(newInstance(dependency), getQualifierName(dependency));
+            }catch (NewInstanceException e){
+                throw new InvalidClassRegistrationException(e.getMessage(), e.getReferenceClass(), e);
+            }
+        }
+    }
+
+    @Override
+    public void registerDependency(Class<?> dependency, boolean replace) throws InvalidClassRegistrationException {
+        if(!isLoaded()){
+            loadedClasses.add(dependency);
+        }else{
+            try{
+                registerDependency(newInstance(dependency), getQualifierName(dependency), replace);
+            }catch (NewInstanceException e){
+                throw new InvalidClassRegistrationException(e.getMessage(), e.getReferenceClass(), e);
+            }
         }
     }
 
@@ -487,13 +516,18 @@ public final class DependencyContainerStorage implements DependencyContainer {
     }
 
     private void registerDependencyInternal(@NonNull Object dependency) throws InvalidClassRegistrationException{
-        registerDependencyInternal(dependency, "default");
+        registerDependencyInternal(dependency, "default", false);
     }
 
-    private void registerDependencyInternal(@NonNull Object dependency, @NonNull String qualifier) throws InvalidClassRegistrationException{
+    private void registerDependencyInternal(@NonNull Object dependency, boolean replace) throws InvalidClassRegistrationException{
+        registerDependencyInternal(dependency, "default", replace);
+    }
+
+    private void registerDependencyInternal(@NonNull Object dependency, @NonNull String qualifier, boolean replace) throws InvalidClassRegistrationException{
         try{
             final Class<?> clazz = dependency.getClass();
-            if(dependencyContainer.containsKey(clazz)) return;
+            if(dependencyContainer.containsKey(clazz) && !replace) return;
+            if(replace) unRegisterDependency(clazz);
             final List<Dependency> listOfDependency = dependencyContainer.getOrDefault(clazz, new ArrayList<Dependency>());
             final boolean containsQualifier = Objects.requireNonNull(listOfDependency).stream().anyMatch(d -> d.getQualifier().equals(qualifier));
             if(containsQualifier){

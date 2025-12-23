@@ -15,6 +15,17 @@ public interface DependencyContainerRegistor {
     void registerDependency(Object dependency, String qualifier) throws InvalidClassRegistrationException;
 
     /**
+     * Registra uma instância de dependência com um qualificadora específica.
+     *
+     * @param dependency objeto da dependência a ser registrado
+     * @param qualifier  string qualificadora para diferenciar múltiplas implementações
+     * @param replace boolean qualificadora para limpar se existir intanciass antigas
+     * @throws InvalidClassRegistrationException se houver erro no registro da dependência
+     */
+    void registerDependency(Object dependency, String qualifier, boolean replace) throws InvalidClassRegistrationException;
+
+
+    /**
      * Registra uma instância de dependência com qualificadora padrão.
      *
      * @param dependency objeto da dependência a ser registrado
@@ -23,12 +34,31 @@ public interface DependencyContainerRegistor {
     void registerDependency(Object dependency) throws InvalidClassRegistrationException;
 
     /**
+     * Registra uma instância de dependência com qualificadora padrão.
+     *
+     * @param dependency objeto da dependência a ser registrado
+     * @param replace boolean qualificadora para limpar se existir intanciass antigas
+     * @throws InvalidClassRegistrationException se houver erro no registro da dependência
+     */
+    void registerDependency(Object dependency, boolean replace) throws InvalidClassRegistrationException;
+
+
+    /**
      * Registra uma classe de dependência com qualificadora padrão.
      *
      * @param dependency classe da dependência a ser registrado
      * @throws InvalidClassRegistrationException se houver erro no registro da dependência
      */
     void registerDependency(Class<?> dependency) throws InvalidClassRegistrationException;
+
+    /**
+     * Registra uma classe de dependência com qualificadora padrão.
+     *
+     * @param dependency classe da dependência a ser registrado
+     * @param replace boolean qualificadora para limpar se existir intanciass antigas
+     * @throws InvalidClassRegistrationException se houver erro no registro da dependência
+     */
+    void registerDependency(Class<?> dependency, boolean replace) throws InvalidClassRegistrationException;
 
 
     /**
