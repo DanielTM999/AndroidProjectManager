@@ -1,11 +1,9 @@
-package dtm.core.dependencymanager.core.Exception;
+package dtm.dependencymanager.core.Exception;
 
 import android.content.Context;
 import android.os.Looper;
 import android.os.Handler;
 import android.util.Log;
-
-import dtm.core.dependencymanager.annotations.Inject;
 
 public abstract class ExceptionHandler {
 
