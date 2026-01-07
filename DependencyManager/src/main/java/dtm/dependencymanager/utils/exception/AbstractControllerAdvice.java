@@ -1,4 +1,4 @@
-package dtm.dependencymanager.utils.Exception;
+package dtm.dependencymanager.utils.exception;
 
 import android.content.Context;
 import android.util.Log;
