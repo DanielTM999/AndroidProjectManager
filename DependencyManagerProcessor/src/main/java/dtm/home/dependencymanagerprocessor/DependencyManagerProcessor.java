@@ -82,7 +82,7 @@ public class DependencyManagerProcessor extends AbstractProcessor {
 
             sb.append(
                     String.format(
-                            "dependencyContainer.registerDependency(%s.class);\n",
+                            "       dependencyContainer.registerDependency(%s.class);\n",
                             qualifiedName
                     )
             );
@@ -111,7 +111,7 @@ public class DependencyManagerProcessor extends AbstractProcessor {
             @Override
             public void load(DependencyContainer dependencyContainer) {
                try {
-                %s
+               %s
                } catch (Exception e) {
                     throw new RuntimeException(e);
                }
