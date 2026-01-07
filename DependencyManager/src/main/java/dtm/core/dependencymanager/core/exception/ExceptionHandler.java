@@ -1,13 +1,20 @@
-package dtm.dependencymanager.core.Exception;
+package dtm.core.dependencymanager.core.exception;
 
 import android.content.Context;
 import android.os.Looper;
 import android.os.Handler;
 import android.util.Log;
 
-public abstract class ExceptionHandler {
+import dtm.dependencymanager.core.exception.AbstractExceptionHandler;
+
+public abstract class ExceptionHandler extends AbstractExceptionHandler {
 
     private static final String TAG = "ExceptionHandler";
+
+    @Override
+    public void onError(Thread thread, Throwable throwable, Object context){
+        this.onError(thread, throwable, toContext(context));
+    }
 
     public void onError(Thread thread, Throwable throwable, Context context){
         boolean isUiThread = isUiThread(thread);
@@ -24,8 +31,13 @@ public abstract class ExceptionHandler {
         }
     }
 
+
     protected boolean isUiThread(Thread thread){
         return  (thread == Looper.getMainLooper().getThread());
+    }
+
+    protected Context toContext(Object object){
+        return (object instanceof Context context) ? context : null;
     }
 
     protected void runOnUiThread(Runnable runnable){

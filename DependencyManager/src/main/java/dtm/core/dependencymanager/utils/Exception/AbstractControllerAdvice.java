@@ -7,9 +7,9 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import dtm.core.dependencymanager.annotations.HandleException;
-import dtm.core.dependencymanager.annotations.Inject;
-import dtm.core.dependencymanager.core.Exception.ExceptionHandler;
+import dtm.dependencymanager.annotations.HandleException;
+import dtm.dependencymanager.annotations.Inject;
+import dtm.core.dependencymanager.core.exception.ExceptionHandler;
 
 public abstract class AbstractControllerAdvice extends ExceptionHandler {
     private final Map<Class<? extends Throwable>, Method> throwableMethodMap;
@@ -23,7 +23,7 @@ public abstract class AbstractControllerAdvice extends ExceptionHandler {
 
     @Override
     public void onError(Thread thread, Throwable throwable, Context context) {
-        super.onError(thread, throwable, context);
+        //super.onError(thread, throwable, context);
         Throwable realThrowable = unwrapThrowable(throwable);
         Class<?> throwableClass = realThrowable.getClass();
         Method handlerMethod = throwableMethodMap.get(throwableClass);

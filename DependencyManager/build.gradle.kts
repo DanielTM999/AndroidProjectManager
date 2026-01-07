@@ -38,6 +38,8 @@ android {
 }
 
 dependencies {
+    api(project(":DependencyManagerAnnotations"))
+    implementation(project(":DependencyManagerCore"))
     implementation(libs.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
@@ -53,7 +55,7 @@ publishing {
     publications {
         create<MavenPublication>("release") {
             groupId = "dtm.core"
-            artifactId = "dependencymanager"
+            artifactId = "dependency-manager"
             version = "1.0.0"
 
             afterEvaluate {

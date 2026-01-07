@@ -9,16 +9,14 @@ import android.view.View;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 
-import dtm.core.dependencymanager.annotations.EnableInheritedViewInjection;
+import dtm.dependencymanager.annotations.EnableInheritedViewInjection;
 import dtm.core.dependencymanager.internal.AppElementsMapperStorage;
-import dtm.core.dependencymanager.annotations.ViewElement;
+import dtm.dependencymanager.annotations.ViewElement;
 import dtm.core.dependencymanager.core.AppElementsMapper;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class ViewManagedActivity extends ContextHolderActivity {
     protected AppElementsMapper appElementsMapper;

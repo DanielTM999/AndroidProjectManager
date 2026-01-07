@@ -1,4 +1,4 @@
-package dtm.core.dependencymanager.annotations;
+package dtm.dependencymanager.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

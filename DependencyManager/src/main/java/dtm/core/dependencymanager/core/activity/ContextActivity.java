@@ -293,24 +293,45 @@ public abstract class ContextActivity extends AppCompatActivity {
     }
 
     protected CompletableFuture<Void> runDelayAsync(Runnable runnable, long delayInMillis){
+        return runDelayAsync(runnable, delayInMillis, false);
+    }
+
+    protected CompletableFuture<Void> runDelayAsync(Runnable runnable, long delayInMillis, boolean callExceptionHandler){
         return CompletableFuture.runAsync(() -> {
             try {
                 Thread.sleep(delayInMillis);
                 runnable.run();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            } catch (InterruptedException ignored) {}
+        }).whenComplete((result, throwable) -> {
+            if (throwable != null && callExceptionHandler) {
+                Thread current = Thread.currentThread();
+                Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                if (handler != null) {
+                    handler.uncaughtException(current, throwable);
+                }
             }
         });
     }
 
     protected <T> Future<T> runDelayAsync(Supplier<T> runnable, long delayInMillis){
+        return runDelayAsync(runnable, delayInMillis, false);
+    }
+
+    protected <T> Future<T> runDelayAsync(Supplier<T> runnable, long delayInMillis, boolean callExceptionHandler){
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Thread.sleep(delayInMillis);
                 return runnable.get();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
                 return null;
+            }
+        }).whenComplete((result, throwable) -> {
+            if (throwable != null && callExceptionHandler) {
+                Thread current = Thread.currentThread();
+                Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                if (handler != null) {
+                    handler.uncaughtException(current, throwable);
+                }
             }
         });
     }

@@ -3,7 +3,7 @@ package dtm.core.dependencymanager.internal;
 import android.content.Context;
 import android.util.Log;
 
-import dtm.core.dependencymanager.core.Exception.ExceptionHandler;
+import dtm.core.dependencymanager.core.exception.ExceptionHandler;
 
 public class ExceptionHandlerDefault extends ExceptionHandler {
     private final Thread.UncaughtExceptionHandler exceptionHandler;

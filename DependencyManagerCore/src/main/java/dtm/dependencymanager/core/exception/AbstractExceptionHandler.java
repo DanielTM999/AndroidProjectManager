@@ -1,4 +1,6 @@
 package dtm.dependencymanager.core.exception;
 
-public class AbstractExceptionHandler {
+public abstract class AbstractExceptionHandler {
+
+    public abstract void onError(Thread thread, Throwable throwable, Object context);
 }

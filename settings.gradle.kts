@@ -23,3 +23,6 @@ rootProject.name = "AndroidProjectManager"
 include(":ProjectManager")
 include(":DependencyManager")
 include(":apptest")
+include(":DependencyManagerProcessor")
+include(":DependencyManagerAnnotations")
+include(":DependencyManagerCore")

@@ -1,29 +1,30 @@
 package dtm.core.dependencymanager.core;
 
-import android.app.Application;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
-import dtm.core.dependencymanager.annotations.UseExceptionHandler;
-import dtm.core.dependencymanager.core.Exception.ExceptionHandler;
+import dtm.dependencymanager.annotations.UseExceptionHandler;
+import dtm.core.dependencymanager.core.exception.ExceptionHandler;
 import dtm.core.dependencymanager.exceptions.ApplicationStartupException;
 import dtm.core.dependencymanager.internal.AppElementsMapperStorage;
 import dtm.core.dependencymanager.containers.DependencyContainerStorage;
 import dtm.core.dependencymanager.exceptions.InvalidClassRegistrationException;
 import dtm.core.dependencymanager.internal.ExceptionHandlerDefault;
+import dtm.dependencymanager.core.exception.AbstractExceptionHandler;
 
-public abstract class ApplicationCore extends Application {
+public abstract class ApplicationCore extends AbstractApplication {
 
     protected final DependencyContainer dependencyContainer;
-    private final AtomicReference<ExceptionHandler> defaultExceptionHandlerRef;
-    private final Class<? extends ExceptionHandler> exceptionHandlerClass;
+    private final AtomicReference<AbstractExceptionHandler> defaultExceptionHandlerRef;
+    private final Class<? extends AbstractExceptionHandler> exceptionHandlerClass;
     private final Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
     protected ApplicationCore(){
         this.dependencyContainer = DependencyContainerStorage.getInstance();
+        this.autoloader(this.dependencyContainer);
         this.defaultExceptionHandlerRef = new AtomicReference<>(
                 new ExceptionHandlerDefault(Thread.getDefaultUncaughtExceptionHandler())
         );
@@ -60,7 +61,7 @@ public abstract class ApplicationCore extends Application {
     }
 
     protected void onApplicationError(Thread thread, Throwable throwable){
-        ExceptionHandler exceptionHandler = defaultExceptionHandlerRef.get();
+        AbstractExceptionHandler exceptionHandler = defaultExceptionHandlerRef.get();
         if(exceptionHandler != null){
             exceptionHandler.onError(thread, throwable, getApplicationContext());
         }else{
@@ -86,13 +87,13 @@ public abstract class ApplicationCore extends Application {
         try{
             dependencyContainer.registerDependency(uncaughtExceptionHandler);
             if(exceptionHandlerClass != null){
-                ExceptionHandler exceptionHandlerCustom = dependencyContainer.newInstance(exceptionHandlerClass);
+                AbstractExceptionHandler exceptionHandlerCustom = dependencyContainer.newInstance(exceptionHandlerClass);
                 if(exceptionHandlerCustom != null) defaultExceptionHandlerRef.set(exceptionHandlerCustom);
             }
         }catch (Exception ignored){}
     }
 
-    private Class<? extends ExceptionHandler> getExceptionHandlerClass(){
+    private Class<? extends AbstractExceptionHandler> getExceptionHandlerClass(){
         UseExceptionHandler exceptionHandlerAnnotation = getClass().getAnnotation(UseExceptionHandler.class);
         if(exceptionHandlerAnnotation != null){
             return exceptionHandlerAnnotation.value();

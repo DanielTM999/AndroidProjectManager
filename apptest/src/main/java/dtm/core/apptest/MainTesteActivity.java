@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import dtm.core.dependencymanager.core.activity.ManagedActivity;
+import dtm.dependencymanager.annotations.Inject;
 
 public class MainTesteActivity extends ManagedActivity {
 
@@ -22,9 +23,5 @@ public class MainTesteActivity extends ManagedActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-        runAsync(() -> {
-            throw new RuntimeException("Teste");
-        }, true);
     }
 }
