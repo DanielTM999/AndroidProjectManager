@@ -23,7 +23,6 @@ public abstract class ApplicationCore extends AbstractApplication {
 
     protected ApplicationCore(){
         this.dependencyContainer = DependencyContainerStorage.getInstance();
-        this.onCreateContainer(this.dependencyContainer);
         this.autoloader(this.dependencyContainer);
         this.defaultExceptionHandlerRef = new AtomicReference<>(
                 new ExceptionHandlerDefault(Thread.getDefaultUncaughtExceptionHandler())
@@ -36,6 +35,7 @@ public abstract class ApplicationCore extends AbstractApplication {
     public void onCreate() {
         super.onCreate();
         Thread.setDefaultUncaughtExceptionHandler(this::onApplicationError);
+        this.onCreateContainer(this.dependencyContainer);
         beforeLoad();
         load().whenComplete((result, throwable) -> {
             if (throwable != null) {
