@@ -1,5 +1,7 @@
 package dtm.dependencymanager.utils;
 
+import androidx.annotation.NonNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -152,10 +154,12 @@ public class DefaultStopWatch implements StopWatch{
         @Override
         public String getTag() { return tag; }
 
+        @NonNull
         @Override
         public String toString() {
             return String.format("Lap[tag='%s', duration=%dns, total=%dns]", tag, lapTimeDuration, lapTime);
         }
+
     }
 
 }
