@@ -29,11 +29,7 @@ public class DependencyManagerProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
         if (generated || roundEnvironment.processingOver()) return true;
 
-        processingEnv.getMessager().printMessage(
-                Diagnostic.Kind.NOTE,
-                "DependencyManagerProcessor executando"
-        );
-
+        printLog("DependencyManagerProcessor executando");
         generated = true;
         Set<? extends Element> services = findServices(roundEnvironment);
         generateAutoloader(services);
@@ -137,6 +133,7 @@ public class DependencyManagerProcessor extends AbstractProcessor {
 
     private boolean hasComponentMeta(TypeElement annotation, Set<String> visited) {
         String name = annotation.getQualifiedName().toString();
+
         if (!visited.add(name)) return false;
 
         if (name.equals(COMPONENT_FQN)) {
@@ -150,8 +147,20 @@ public class DependencyManagerProcessor extends AbstractProcessor {
                 return true;
             }
         }
+        
         return false;
     }
 
+
+    public void printLog(String message){
+        printLog(message, Diagnostic.Kind.NOTE);
+    }
+
+    public void printLog(String message, Diagnostic.Kind kind){
+        processingEnv.getMessager().printMessage(
+                kind,
+                message
+        );
+    }
 
 }
