@@ -36,7 +36,7 @@ public abstract class ApplicationCore extends AbstractApplication {
         super.onCreate();
         Thread.setDefaultUncaughtExceptionHandler(this::onApplicationError);
         this.onCreateContainer(this.dependencyContainer);
-        beforeLoad();
+        this.beforeLoad();
         load().whenComplete((result, throwable) -> {
             if (throwable != null) {
                 runOnUiThread(() -> onLoadError(throwable));
