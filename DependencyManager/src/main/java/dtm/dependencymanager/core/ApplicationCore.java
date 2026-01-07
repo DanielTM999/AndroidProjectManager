@@ -23,6 +23,7 @@ public abstract class ApplicationCore extends AbstractApplication {
 
     protected ApplicationCore(){
         this.dependencyContainer = DependencyContainerStorage.getInstance();
+        this.onCreateContainer(this.dependencyContainer);
         this.autoloader(this.dependencyContainer);
         this.defaultExceptionHandlerRef = new AtomicReference<>(
                 new ExceptionHandlerDefault(Thread.getDefaultUncaughtExceptionHandler())
@@ -46,12 +47,12 @@ public abstract class ApplicationCore extends AbstractApplication {
         });
     }
 
+    @Override
     protected void beforeLoad(){
         AppElementsMapperStorage.getInstance(this);
     }
 
-    protected void afterLoad(){}
-
+    @Override
     protected void onLoadError(Throwable th){
         if(th instanceof ApplicationStartupException e){
             throw e;
@@ -59,6 +60,7 @@ public abstract class ApplicationCore extends AbstractApplication {
         throw new ApplicationStartupException("Erro ao iniciar a aplicação", th);
     }
 
+    @Override
     protected void onApplicationError(Thread thread, Throwable throwable){
         AbstractExceptionHandler exceptionHandler = defaultExceptionHandlerRef.get();
         if(exceptionHandler != null){
