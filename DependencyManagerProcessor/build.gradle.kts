@@ -10,7 +10,6 @@ java {
 }
 
 dependencies {
-    api(project(":DependencyManagerAnnotations"))
     implementation(libs.auto.service)
     annotationProcessor(libs.auto.service)
 }

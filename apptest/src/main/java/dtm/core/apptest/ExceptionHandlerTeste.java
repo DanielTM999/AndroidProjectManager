@@ -4,7 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.util.Log;
 
-import dtm.core.dependencymanager.utils.Exception.AbstractControllerAdvice;
+import dtm.dependencymanager.utils.Exception.AbstractControllerAdvice;
 import dtm.dependencymanager.annotations.HandleException;
 
 public class ExceptionHandlerTeste extends AbstractControllerAdvice {

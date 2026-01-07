@@ -1,0 +1,193 @@
+package dtm.dependencymanager.core.fragment.popup;
+
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentActivity;
+
+import dtm.dependencymanager.core.NotificationCreator;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import dtm.dependencymanager.core.NotificationService;
+import lombok.NonNull;
+
+public abstract class ContextManagedFragmentPopup extends DialogFragment {
+
+    private final NotificationService notificationService;
+
+    public ContextManagedFragmentPopup(){
+        this.notificationService = NotificationService.of(this::requireContext);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    public void onStart(boolean fullScreen) {
+        super.onStart();
+        if(fullScreen){
+            Dialog dialog = getDialog();
+            if (dialog != null && dialog.getWindow() != null) {
+                dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
+        }
+    }
+
+    protected void requestPermission(@NonNull ActivityResultLauncher<String> requestPermissionLauncher, @NonNull String permissions) {
+        requestPermissionLauncher.launch(permissions);
+    }
+
+    protected Handler newHandlerPostDelayAction(Runnable runnable, long time){
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.postDelayed(runnable, time);
+        return handler;
+    }
+
+    protected Handler newHandlerPostAction(Runnable runnable){
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(runnable);
+        return handler;
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable){
+        return runAsync(runnable, false);
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, boolean callExceptionHandler){
+        return CompletableFuture.runAsync(runnable).whenComplete((result, throwable) -> {
+            if (throwable != null && callExceptionHandler) {
+                Thread current = Thread.currentThread();
+                Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                if (handler != null) {
+                    handler.uncaughtException(current, throwable);
+                }
+            }
+        });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable) {
+        return runAsync(runnable, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected CompletableFuture<Void> runAsync(Runnable runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.runAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor) {
+        return runAsync(runnable, executor, false);
+    }
+
+    protected <T> CompletableFuture<T> runAsync(Supplier<T> runnable, Executor executor, boolean callExceptionHandler) {
+        return CompletableFuture.supplyAsync(runnable, executor)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null && callExceptionHandler) {
+                        Thread current = Thread.currentThread();
+                        Thread.UncaughtExceptionHandler handler = Thread.getDefaultUncaughtExceptionHandler();
+                        if (handler != null) {
+                            handler.uncaughtException(current, throwable);
+                        }
+                    }
+                });
+    }
+
+    protected CompletableFuture<Void> runDelayAsync(Runnable runnable, long delayInMillis){
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(delayInMillis);
+                runnable.run();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
+    protected <T> Future<T> runDelayAsync(Supplier<T> runnable, long delayInMillis){
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(delayInMillis);
+                return runnable.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        });
+    }
+
+
+    protected void sendSimpleNotification(Consumer<NotificationCreator> creatorConsumer){
+        notificationService.sendSimpleNotification(creatorConsumer);
+    }
+
+    protected void sendSimpleNotification(String title, String content) {
+        notificationService.sendSimpleNotification(title, content);
+    }
+
+    protected void sendSimpleNotification(String title, String content, boolean highPriority) {
+        notificationService.sendSimpleNotification(title, content, highPriority);
+    }
+
+
+    protected void runOnUiThread(Runnable action){
+        requireActivity().runOnUiThread(action);
+    }
+    protected boolean isActivityAlive() {
+        Activity activity = getActivity();
+        return activity != null && !activity.isFinishing();
+    }
+
+    protected void hideKeyboard() {
+        View view = getView();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
+    protected void withContext(Consumer<Context> action) {
+        Context context = getContext();
+        if (context != null) action.accept(context);
+    }
+
+    protected void withActivity(Consumer<FragmentActivity> action) {
+        FragmentActivity context = getActivity();
+        if (context != null) action.accept(context);
+    }
+}

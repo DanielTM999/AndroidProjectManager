@@ -3,13 +3,11 @@ package dtm.core.apptest;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import dtm.core.dependencymanager.core.activity.ManagedActivity;
-import dtm.dependencymanager.annotations.Inject;
+import dtm.dependencymanager.core.activity.ManagedActivity;
 
 public class MainTesteActivity extends ManagedActivity {
 

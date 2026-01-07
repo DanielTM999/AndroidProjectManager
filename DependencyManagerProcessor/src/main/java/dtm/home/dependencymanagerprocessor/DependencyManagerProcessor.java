@@ -1,16 +1,16 @@
 package dtm.home.dependencymanagerprocessor;
 
 import com.google.auto.service.AutoService;
-
 import java.io.Writer;
+import java.util.HashSet;
 import java.util.Set;
-import dtm.dependencymanager.annotations.Service;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
@@ -22,6 +22,8 @@ import javax.tools.JavaFileObject;
 @AutoService(Processor.class)
 public class DependencyManagerProcessor extends AbstractProcessor {
     private boolean generated = false;
+
+    private static final String COMPONENT_FQN = "dtm.dependencymanager.annotations.Component";
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
@@ -40,7 +42,17 @@ public class DependencyManagerProcessor extends AbstractProcessor {
     }
 
     private Set<? extends Element> findServices(RoundEnvironment roundEnv) {
-        return roundEnv.getElementsAnnotatedWith(Service.class);
+        Set<Element> result = new HashSet<>();
+
+        for (Element element : roundEnv.getRootElements()) {
+            if (element.getKind() != ElementKind.CLASS) continue;
+
+            if (isComponent(element)) {
+                result.add(element);
+            }
+        }
+
+        return result;
     }
 
     private void generateAutoloader(Set<? extends Element> services) {
@@ -74,7 +86,7 @@ public class DependencyManagerProcessor extends AbstractProcessor {
 
             sb.append(
                     String.format(
-                            "            dependencyContainer.registerDependency(%s.class);\n",
+                            "dependencyContainer.registerDependency(%s.class);\n",
                             qualifiedName
                     )
             );
@@ -86,8 +98,8 @@ public class DependencyManagerProcessor extends AbstractProcessor {
         return """
         package dtm.core.dependencymanager.generated;
         
-        import dtm.core.dependencymanager.internal.Autoloader;
-        import dtm.core.dependencymanager.core.DependencyContainer;
+        import dtm.dependencymanager.internal.Autoloader;
+        import dtm.dependencymanager.core.DependencyContainer;
         
         public final class DependencyManagerAutoloader implements Autoloader {
         
@@ -103,7 +115,7 @@ public class DependencyManagerProcessor extends AbstractProcessor {
             @Override
             public void load(DependencyContainer dependencyContainer) {
                try {
-                    %s
+                %s
                } catch (Exception e) {
                     throw new RuntimeException(e);
                }
@@ -111,5 +123,35 @@ public class DependencyManagerProcessor extends AbstractProcessor {
         }
         """;
     }
+
+    private boolean isComponent(Element element) {
+        for (AnnotationMirror annotation : element.getAnnotationMirrors()) {
+            TypeElement annotationType = (TypeElement) annotation.getAnnotationType().asElement();
+
+            if (hasComponentMeta(annotationType, new HashSet<>())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasComponentMeta(TypeElement annotation, Set<String> visited) {
+        String name = annotation.getQualifiedName().toString();
+        if (!visited.add(name)) return false;
+
+        if (name.equals(COMPONENT_FQN)) {
+            return true;
+        }
+
+        for (AnnotationMirror meta : annotation.getAnnotationMirrors()) {
+            TypeElement metaType = (TypeElement) meta.getAnnotationType().asElement();
+
+            if (hasComponentMeta(metaType, visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
 }

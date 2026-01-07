@@ -38,7 +38,6 @@ android {
 }
 
 dependencies {
-    api(project(":DependencyManagerAnnotations"))
     implementation(project(":DependencyManagerCore"))
     implementation(libs.appcompat)
     implementation(libs.material)
