@@ -38,7 +38,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":DependencyManagerCore"))
     implementation(libs.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)

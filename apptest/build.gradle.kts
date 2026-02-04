@@ -33,7 +33,6 @@ android {
 
 dependencies {
     implementation(project(":DependencyManager"))
-    implementation(project(":DependencyManagerCore"))
     annotationProcessor(project(":DependencyManagerProcessor"))
     implementation(libs.appcompat)
     implementation(libs.material)
