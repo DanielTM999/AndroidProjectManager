@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc *)",
+      "Bash(xargs grep *)",
+      "Bash(./gradlew :DependencyManager:compileDebugJavaWithJavac --no-daemon)",
+      "Bash(./gradlew :apptest:assembleDebug --no-daemon)",
+      "Bash(./gradlew :DependencyManager:testDebugUnitTest --no-daemon)"
+    ]
+  }
+}

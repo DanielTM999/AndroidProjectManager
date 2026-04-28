@@ -1,10 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
     tools:context=".MainTesteActivity">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DI Tests"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btn_polymorphism"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Polimorfismo (Greeter pt + en)"/>
+
+        <Button
+            android:id="@+id/btn_constructor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Qualifier em construtor (Calculator -> en)"/>
+
+        <Button
+            android:id="@+id/btn_singleton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3. Singleton (Counter)"/>
+
+        <Button
+            android:id="@+id/btn_lazy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="4. Lazy injection (TesteService)"/>
+
+        <Button
+            android:id="@+id/btn_override_instance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="5. overrideDependency(Counter zerado)"/>
+
+        <Button
+            android:id="@+id/btn_override_qualifier"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="6. overrideDependency com qualifier (Greeter pt -> custom)"/>
+
+        <Button
+            android:id="@+id/btn_runtime_register"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="7. registerDependency em runtime (RuntimeBean)"/>
+
+        <Button
+            android:id="@+id/btn_unregister"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="8. unRegisterDependency (RuntimeBean)"/>
+
+        <Button
+            android:id="@+id/btn_clear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Limpar log"/>
+
+        <TextView
+            android:id="@+id/output"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:padding="8dp"
+            android:background="#11000000"
+            android:fontFamily="monospace"
+            android:textSize="13sp"
+            android:textIsSelectable="true"/>
+    </LinearLayout>
+</ScrollView>

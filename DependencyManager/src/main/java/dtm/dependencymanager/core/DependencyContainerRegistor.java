@@ -78,6 +78,42 @@ public interface DependencyContainerRegistor {
     void unRegisterDependency(Class<?> dependency);
 
     /**
+     * Sobrescreve uma dependência em runtime, mesmo que o contêiner já esteja carregado.
+     * Substitui qualquer instância previamente registrada para a mesma classe e qualificadora.
+     *
+     * @param dependency objeto da dependência
+     * @throws InvalidClassRegistrationException se houver erro durante a sobrescrita
+     */
+    void overrideDependency(Object dependency) throws InvalidClassRegistrationException;
+
+    /**
+     * Sobrescreve uma dependência em runtime com uma qualificadora específica.
+     *
+     * @param dependency objeto da dependência
+     * @param qualifier  qualificadora alvo
+     * @throws InvalidClassRegistrationException se houver erro durante a sobrescrita
+     */
+    void overrideDependency(Object dependency, String qualifier) throws InvalidClassRegistrationException;
+
+    /**
+     * Sobrescreve uma dependência registrada por classe em runtime.
+     * Cria uma nova instância e substitui a anterior.
+     *
+     * @param dependency classe da dependência
+     * @throws InvalidClassRegistrationException se houver erro durante a sobrescrita
+     */
+    void overrideDependency(Class<?> dependency) throws InvalidClassRegistrationException;
+
+    /**
+     * Sobrescreve uma dependência via função de registro.
+     *
+     * @param registrationFunction função de registro
+     * @param <T> tipo
+     * @throws InvalidClassRegistrationException se houver erro durante a sobrescrita
+     */
+    <T> void overrideDependency(FunctionRegistrationResult<T> registrationFunction) throws InvalidClassRegistrationException;
+
+    /**
      * Cria uma função de registro padrão a partir de uma classe de referência e uma função Supplier.
      * A qualificadora padrão é "default".
      *
