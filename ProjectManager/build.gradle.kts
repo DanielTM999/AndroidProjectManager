@@ -45,7 +45,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "dtm.core"
             artifactId = "androidprojectmanager"
-            version = "1.0.0"
+            version = "1.0.1"
 
             afterEvaluate {
                 artifact(

@@ -54,7 +54,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "dtm.core"
             artifactId = "dependency-manager"
-            version = "1.0.0"
+            version = "1.0.1"
 
             afterEvaluate {
                 artifact(
