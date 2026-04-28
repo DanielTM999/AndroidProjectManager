@@ -90,6 +90,14 @@ public abstract class ManagedActivity extends ViewManagedActivity {
         return this.dependencyContainer.getRegisteredDependencies();
     }
 
+    protected void overrideService(Object object) throws InvalidClassRegistrationException {
+        dependencyContainer.overrideDependency(object);
+    }
+
+    protected void overrideService(Object object, String qualifier) throws InvalidClassRegistrationException {
+        dependencyContainer.overrideDependency(object, qualifier);
+    }
+
     protected void registerService(Class<?> clazz) throws InvalidClassRegistrationException{
         dependencyContainer.registerDependency(clazz);
     }
