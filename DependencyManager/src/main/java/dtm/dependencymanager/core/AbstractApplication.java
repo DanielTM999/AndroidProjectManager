@@ -12,7 +12,7 @@ import dtm.dependencymanager.exceptions.ApplicationStartupException;
 import dtm.dependencymanager.internal.Autoloader;
 
 public abstract class AbstractApplication extends Application {
-    protected void autoloader(DependencyContainerLaz dependencyContainer){
+    protected void autoloader(DependencyContainer dependencyContainer){
 
         try{
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
