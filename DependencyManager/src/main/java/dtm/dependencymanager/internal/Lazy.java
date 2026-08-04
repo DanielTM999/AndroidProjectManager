@@ -39,6 +39,15 @@ public class Lazy {
             }
 
             @Override
+            public T awaitOr(long timeout, TimeUnit unit, Supplier<T> resultAction) {
+                try{
+                    T result = awaitOrNull(timeout, unit);
+                    return result != null ? result : resultAction.get();
+                }catch (Exception ignored){}
+                return null;
+            }
+
+            @Override
             public T awaitOrThrow(long timeout, TimeUnit unit) throws LazyDependencyException {
                 T value = awaitOrNull(timeout, unit);
                 if(value != null) return value;
@@ -74,6 +83,15 @@ public class Lazy {
                 T value = awaitOrNull(timeout, unit);
                 if(value != null) return value;
                 throw new LazyDependencyException("Dependecia não carregada.");
+            }
+
+            @Override
+            public T awaitOr(long timeout, TimeUnit unit, Supplier<T> resultAction) {
+                try{
+                    T result = awaitOrNull(timeout, unit);
+                    return result != null ? result : resultAction.get();
+                }catch (Exception ignored){}
+                return null;
             }
 
             @Override
