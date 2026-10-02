@@ -107,9 +107,12 @@ public final class DependencyContainerStorage implements DependencyContainer {
     @Override
     public void load() throws InvalidClassRegistrationException {
         if (isLoaded()) return;
-        filterServiceClass();
-        loadBeens();
-        loaded.set(true);
+        synchronized (loaded) {
+            if (isLoaded()) return;
+            filterServiceClass();
+            loadBeens();
+            loaded.set(true);
+        }
     }
 
     @Override

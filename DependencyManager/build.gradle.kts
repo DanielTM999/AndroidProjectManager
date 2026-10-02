@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "dtm.core"
-version = "1.0.1"
+version = "1.0.2"
 
 android {
     namespace = "dtm.core.dependencymanager"
@@ -54,7 +54,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "dtm.core"
             artifactId = "dependency-manager"
-            version = "1.0.1"
+            version = "1.0.2"
 
             afterEvaluate {
                 artifact(
